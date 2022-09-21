@@ -1,0 +1,48 @@
+#!/bin/bash
+for programm in "$@"; 
+do
+NumberLines=$(sed -n '=' $programm | wc -l)
+
+#echo "Lines $NumberLines"
+if [ "$NumberLines" -ge 3 ]
+then
+    exec < "$programm"
+    X=($(cut -d':' -f1))                  
+    #echo "X = ${X[@]}"                    
+    exec < "$programm" 
+    Y=($(cut -d':' -f2))
+    #echo "Y = ${Y[@]}"
+    
+ 	  Sum_X=0
+	  Sum_Y=0
+	  Sum_XY=0
+	  Sum_x2=0
+    for (( i=0; i <= ($NumberLines-1); i++ ))
+    do
+          h1=$(echo "scale=2; (${X[$i]})+0" | bc) 
+		  Sum_X=$(echo "scale=2; $Sum_X + $h1" | bc)   
+		  h2=$(echo "scale=2; (${Y[$i]})+0" | bc)	
+		  Sum_Y=$(echo "scale=2; $Sum_Y + $h2" | bc)	
+		  Sum_XY=$(echo "scale=2; ($Sum_XY + $h1 * $h2)" | bc)	
+		  Sum_x2=$(echo "scale=2; ( $Sum_x2 + $h1 * $h1 )" | bc)
+    done
+
+	a=$(echo "scale=2; (( $NumberLines * $Sum_XY - $Sum_X * $Sum_Y ) / ( $NumberLines * $Sum_x2 - $Sum_X ^ 2 ))" | bc)	
+    b=$(echo "scale=2; (( $Sum_Y - $a * $Sum_X ) / $NumberLines)" | bc)
+
+	err=0
+	for (( i=0;i <= ($NumberLines-1); i++ ))
+	do
+		h1=$(echo "scale=2; (${X[$i]})/1" | bc) 
+		h2=$(echo "scale=2; (${Y[$i]})/1" | bc)
+		err1=$(echo "scale=2; (( $h2 - ($a * $h1 + $b) ) ^ 2 )" | bc)
+		err=$(echo " ($err + $err1)" | bc)
+	done
+
+	echo "Outputs $programm:a=$a b=$b c=1 err=$err"
+
+else
+echo "Wrong inputs"
+fi
+
+done
